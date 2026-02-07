@@ -3,12 +3,16 @@ FROM php:8.2-apache
 # Enable Apache rewrite
 RUN a2enmod rewrite
 
-# Install PHP extensions required by Laravel
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
     libzip-dev \
     unzip \
     git \
+    curl \
     && docker-php-ext-install pdo pdo_mysql zip
+
+# Install Composer
+COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
 
 # Set Apache document root to Laravel public folder
 ENV APACHE_DOCUMENT_ROOT=/var/www/html/public
@@ -18,5 +22,8 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Copy project files
 COPY . /var/www/html
 
-# Set permissions (Laravel requirement)
+# Install Laravel dependencies (THIS IS THE FIX)
+RUN composer install --no-dev --optimize-autoloader
+
+# Set permissions
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
