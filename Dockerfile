@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y \
     unzip \
     git \
     curl \
-    && docker-php-ext-install pdo pdo_mysql zip
+    && docker-php-ext-install pdo pdo_sqlite zip
 
 # Install Composer
 COPY --from=composer:2 /usr/bin/composer /usr/bin/composer
@@ -22,8 +22,13 @@ RUN sed -ri -e 's!/var/www/html!${APACHE_DOCUMENT_ROOT}!g' /etc/apache2/sites-av
 # Copy project files
 COPY . /var/www/html
 
-# Install Laravel dependencies (THIS IS THE FIX)
+# Create SQLite database folder and file
+RUN mkdir -p /var/www/database \
+    && touch /var/www/database/database.sqlite \
+    && chown -R www-data:www-data /var/www/database
+
+# Install Laravel dependencies
 RUN composer install --no-dev --optimize-autoloader
 
-# Set permissions
+# Set permissions for Laravel folders
 RUN chown -R www-data:www-data /var/www/html/storage /var/www/html/bootstrap/cache
